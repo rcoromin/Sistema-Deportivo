@@ -1,0 +1,5 @@
+{
+  "name": "Sistema de Autenticación de Usuarios con React",
+  "description": "Un sistema de inicio de sesión y registro de usuarios moderno y elegante construido con React, TypeScript y Tailwind CSS. Demuestra un flujo de autenticación de frontend completo con interacciones de backend simuladas.",
+  "requestFramePermissions": []
+}
