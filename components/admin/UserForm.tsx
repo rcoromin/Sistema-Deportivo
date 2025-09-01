@@ -4,6 +4,7 @@ import { InformationCircleIcon } from '@heroicons/react/24/outline';
 interface UserFormProps {
   editingUser: any;
   onSaved: () => void;
+  onError?: (msg?: string) => void;
 }
 
 const tipos = [
@@ -12,7 +13,7 @@ const tipos = [
   { id: 3, nombre: 'administrador' },
 ];
 
-const UserForm: React.FC<UserFormProps> = ({ editingUser, onSaved }) => {
+const UserForm: React.FC<UserFormProps> = ({ editingUser, onSaved, onError }) => {
   const [form, setForm] = useState({
     nombre_usuario: '',
     correo: '',
@@ -55,7 +56,7 @@ const UserForm: React.FC<UserFormProps> = ({ editingUser, onSaved }) => {
     const newErrors: {[key:string]: string} = {};
     if (!form.nombre_usuario) newErrors.nombre_usuario = 'El nombre es obligatorio';
     if (!form.correo) newErrors.correo = 'El correo es obligatorio';
-    if (!editingUser && !form.contraseña) newErrors.contraseña = 'La contraseña es obligatoria';
+  if (!editingUser && !form.contraseña) newErrors.contraseña = 'La contraseña es obligatoria';
     if (form.correo && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.correo)) newErrors.correo = 'Correo inválido';
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -66,11 +67,12 @@ const UserForm: React.FC<UserFormProps> = ({ editingUser, onSaved }) => {
     try {
       let res;
       if (editingUser && editingUser.id_usuario) {
-        // Actualizar usuario
+        // Actualizar usuario (sin contraseña)
+        const { contraseña, ...formSinPassword } = form;
         res = await fetch(`http://127.0.0.1:5000/usuarios/${editingUser.id_usuario}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'X-User-Id': adminId },
-          body: JSON.stringify(form)
+          body: JSON.stringify(formSinPassword)
         });
       } else {
         // Crear usuario
@@ -83,11 +85,13 @@ const UserForm: React.FC<UserFormProps> = ({ editingUser, onSaved }) => {
       if (!res.ok) {
         const data = await res.json();
         setSubmitError(data.error || 'Error al guardar');
+        if (onError) onError(data.error || 'Error al guardar');
         return;
       }
       onSaved();
     } catch (err) {
       setSubmitError('Error de red o servidor');
+      if (onError) onError('Error de red o servidor');
     }
   };
 
@@ -134,24 +138,26 @@ const UserForm: React.FC<UserFormProps> = ({ editingUser, onSaved }) => {
         />
         {errors.correo && <span className="text-red-500 text-xs">{errors.correo}</span>}
       </div>
-      <div className="flex flex-col gap-1 col-span-1">
-        <label htmlFor="contraseña" className="font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1">
-          Contraseña
-          <span className="text-xs text-gray-400" title="Mínimo 6 caracteres">ⓘ</span>
-        </label>
-        <input
-          id="contraseña"
-          name="contraseña"
-          value={form.contraseña ?? ''}
-          onChange={handleChange}
-          placeholder="Contraseña"
-          className={`input ${errors.contraseña ? 'border-red-500 ring-2 ring-red-400' : ''}`}
-          type="password"
-          required={!editingUser}
-          title="Mínimo 6 caracteres"
-        />
-        {errors.contraseña && <span className="text-red-500 text-xs">{errors.contraseña}</span>}
-      </div>
+      {!editingUser && (
+        <div className="flex flex-col gap-1 col-span-1">
+          <label htmlFor="contraseña" className="font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1">
+            Contraseña
+            <span className="text-xs text-gray-400" title="Mínimo 6 caracteres">ⓘ</span>
+          </label>
+          <input
+            id="contraseña"
+            name="contraseña"
+            value={form.contraseña ?? ''}
+            onChange={handleChange}
+            placeholder="Contraseña"
+            className={`input ${errors.contraseña ? 'border-red-500 ring-2 ring-red-400' : ''}`}
+            type="password"
+            required
+            title="Mínimo 6 caracteres"
+          />
+          {errors.contraseña && <span className="text-red-500 text-xs">{errors.contraseña}</span>}
+        </div>
+      )}
       <div className="flex flex-col gap-1 col-span-1">
         <label htmlFor="nombre_empresa" className="font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1">
           Empresa

@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { PencilSquareIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, TrashIcon, ArrowPathIcon, KeyIcon } from '@heroicons/react/24/outline';
+
+interface UserListProps {
+  onEdit: (user: any) => void;
+  onPassword: (user: any) => void;
+  refresh: boolean;
+}
 
 interface UserListProps {
   onEdit: (user: any) => void;
   refresh: boolean;
 }
 
-const UserList: React.FC<UserListProps> = ({ onEdit, refresh }) => {
+const UserList: React.FC<UserListProps> = ({ onEdit, onPassword, refresh }) => {
   const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -49,23 +55,30 @@ const UserList: React.FC<UserListProps> = ({ onEdit, refresh }) => {
                 <td className="p-3 border border-gray-200 dark:border-gray-700">{u.correo}</td>
                 <td className="p-3 border border-gray-200 dark:border-gray-700">{u.nombre_tipo}</td>
                 <td className="p-3 border border-gray-200 dark:border-gray-700">{u.nombre_empresa}</td>
-                <td className="p-3 border border-gray-200 dark:border-gray-700">{u.activo ? 'Activo' : 'Desactivado'}</td>
+                <td className="p-3 border border-gray-200 dark:border-gray-700">{u.esta_confirmado ? 'Activo' : 'Desactivado'}</td>
                 <td className="p-3 border border-gray-200 dark:border-gray-700 flex gap-3 items-center justify-center">
                   <button title="Editar" className="text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 p-1 rounded transition" onClick={() => onEdit(u)}>
                     <PencilSquareIcon className="w-5 h-5" />
                   </button>
                   <button
-                    title={u.activo ? 'Desactivar' : 'Reactivar'}
-                    className={`transition p-1 rounded ${u.activo ? 'text-red-600 hover:bg-red-100 dark:hover:bg-red-900' : 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900'}`}
+                    title="Actualizar contraseña"
+                    className="text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900 p-1 rounded transition"
+                    onClick={() => onPassword(u)}
+                  >
+                    <KeyIcon className="w-5 h-5" />
+                  </button>
+                  <button
+                    title={u.esta_confirmado ? 'Desactivar' : 'Reactivar'}
+                    className={`transition p-1 rounded ${u.esta_confirmado ? 'text-red-600 hover:bg-red-100 dark:hover:bg-red-900' : 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900'}`}
                     onClick={async () => {
                       const adminId = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).id_usuario : null;
                       if (!adminId) return;
                       await fetch(`http://127.0.0.1:5000/usuarios/${u.id_usuario}/estado`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json', 'X-User-Id': adminId },
-                        body: JSON.stringify({ activo: u.activo ? 0 : 1 })
+                        body: JSON.stringify({ activo: u.esta_confirmado ? 0 : 1 })
                       });
-                      setUsers(users => users.map(us => us.id_usuario === u.id_usuario ? { ...us, activo: u.activo ? 0 : 1 } : us));
+                      setUsers(users => users.map(us => us.id_usuario === u.id_usuario ? { ...us, esta_confirmado: u.esta_confirmado ? 0 : 1 } : us));
                     }}
                   >
                     <ArrowPathIcon className="w-5 h-5" />

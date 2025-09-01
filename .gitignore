@@ -45,3 +45,4 @@ Thumbs.db
 # Ignore local images
 img/
 public/*.png
+hash_password.py

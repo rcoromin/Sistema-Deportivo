@@ -78,9 +78,6 @@ def actualizar_usuario(id_usuario):
         if campo in data:
             campos.append(f"{campo} = %s")
             valores.append(data[campo])
-    if 'contraseña' in data and data['contraseña']:
-        campos.append("contraseña = %s")
-        valores.append(bcrypt.hashpw(data['contraseña'].encode('utf-8'), bcrypt.gensalt()))
     if not campos:
         return jsonify({'error': 'Nada para actualizar'}), 400
     valores.append(id_usuario)
@@ -96,17 +93,45 @@ def actualizar_usuario(id_usuario):
         cursor.close()
         conn.close()
 
+# Nuevo endpoint para cambiar solo la contraseña
+@app.route('/usuarios/<int:id_usuario>/password', methods=['PATCH'])
+@require_admin
+def actualizar_contraseña(id_usuario):
+    data = request.get_json()
+    nueva_contraseña = data.get('contraseña')
+    if not nueva_contraseña:
+        return jsonify({'error': 'La contraseña no puede estar vacía'}), 400
+    hashed_contraseña = bcrypt.hashpw(nueva_contraseña.encode('utf-8'), bcrypt.gensalt())
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Fallo en la conexión a la base de datos'}), 500
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE usuario SET contraseña = %s WHERE id_usuario = %s", (hashed_contraseña, id_usuario))
+        conn.commit()
+        return jsonify({'message': 'Contraseña actualizada correctamente'}), 200
+    except mysql.connector.Error as err:
+        return jsonify({'error': str(err)}), 400
+    finally:
+        cursor.close()
+        conn.close()
+
 @app.route('/usuarios/<int:id_usuario>/estado', methods=['PATCH'])
 @require_admin
 def cambiar_estado_usuario(id_usuario):
     data = request.get_json()
     activo = data.get('activo')
-    if activo not in [0, 1]:
+    # Convertir a int si viene como string o boolean
+    try:
+        activo_int = int(activo)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Valor de estado inválido'}), 400
+    if activo_int not in [0, 1]:
         return jsonify({'error': 'Valor de estado inválido'}), 400
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("UPDATE usuario SET activo = %s WHERE id_usuario = %s", (activo, id_usuario))
+        cursor.execute("UPDATE usuario SET esta_confirmado = %s WHERE id_usuario = %s", (activo_int, id_usuario))
         conn.commit()
         return jsonify({'message': 'Estado actualizado'}), 200
     except mysql.connector.Error as err:
@@ -140,7 +165,8 @@ mail = Mail(app)
 # --- Configuración de itsdangerous para tokens seguros ---
 serializer = URLSafeTimedSerializer(os.environ.get('SECRET_KEY', 'CLAVE_SECRETA_CAMBIALA'))
 
-# Configuración de la base de datos MySQL
+
+# Configuración de la base de datos MySQL desde variables de entorno
 db_config = {
     'host': os.environ.get('DB_HOST', '127.0.0.1'),
     'user': os.environ.get('DB_USER', 'sistem'),
@@ -151,8 +177,13 @@ db_config = {
 
 # Función para obtener una conexión a la base de datos
 def get_db_connection():
-    conn = mysql.connector.connect(**db_config)
-    return conn
+    try:
+        conn = mysql.connector.connect(**db_config)
+        print("[DB] Conexión a MySQL establecida exitosamente.")
+        return conn
+    except mysql.connector.Error as err:
+        print(f"[DB] ERROR al conectar con MySQL: {err}")
+        return None
 
 # Ruta para registrar un nuevo usuario
 @app.route('/register', methods=['POST'])
@@ -266,6 +297,8 @@ def confirm_email(token):
 @app.route('/configuration', methods=['GET'])
 def get_configuration():
     conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Fallo en la conexión a la base de datos'}), 500
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("SELECT clave_configuracion, valor_configuracion FROM configuracion")
@@ -276,8 +309,9 @@ def get_configuration():
     except mysql.connector.Error as err:
         return jsonify({'error': str(err)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
 
 # Punto de entrada principal de la aplicación
 if __name__ == '__main__':

@@ -87,9 +87,18 @@ Este archivo gestiona el estado de autenticación en toda la aplicación de Reac
 - **Procesos Clave:**
     - **`AuthProvider`**: Es un componente "envoltorio" que provee el contexto de autenticación a toda la aplicación.
     - **`useState<User | null>(null)`**: Mantiene el estado del usuario actual. Si es `null`, el usuario no ha iniciado sesión.
-    - **`useEffect`**: Comprueba si hay datos de usuario guardados en el `localStorage` del navegador cuando la aplicación se carga por primera vez. Esto permite que la sesión persista si recargas la página.
-    - **`login`, `register`, `logout`**: Funciones que se comunican con el backend de Flask para realizar las acciones de autenticación y actualizan el estado del usuario y el `localStorage`.
-    - **`useAuth`**: Un "hook" personalizado que permite a otros componentes acceder fácilmente al estado y las funciones de autenticación.
+### Archivos y Procesos Clave
+
+#### 2. Frontend - Contexto de Autenticación (`contexts/AuthContext.tsx`)
+Este archivo gestiona el estado de autenticación en toda la aplicación de React.
+    - **Propósito:** Saber si un usuario ha iniciado sesión o no, y proporcionar funciones para `login`, `register` y `logout` a cualquier componente que las necesite.
+    - **Procesos Clave:**
+        - **`AuthProvider`**: Es un componente "envoltorio" que provee el contexto de autenticación a toda la aplicación.
+        - **`useState<User | null>(null)`**: Mantiene el estado del usuario actual. Si es `null`, el usuario no ha iniciado sesión.
+        - **`useEffect`**: Comprueba si hay datos de usuario guardados en el `localStorage` del navegador cuando la aplicación se carga por primera vez. Esto permite que la sesión persista si recargas la página.
+        - **`login`, `register`, `logout`**: Funciones que se comunican con el backend de Flask para realizar las acciones de autenticación y actualizan el estado del usuario y el `localStorage`.
+        - **`useAuth`**: Un "hook" personalizado que permite a otros componentes acceder fácilmente al estado y las funciones de autenticación.
+
 
 #### 3. Frontend - Componente Principal (`App.tsx`)
 
